@@ -65,6 +65,18 @@ but you'll have to implement those three above instructions first!
 * Read this whole file.
 * Skim the spec.
 
+call.ls8
+interrupts.ls8
+keyboard.ls8
+mult.ls8
+print8.ls8
+prinstr.ls8
+sctest.ls8
+stack.ls8
+stackoverflow.ls8
+
+
+
 ## Step 1: Add the constructor to `cpu.py`
 
 Add list properties to the `CPU` class to hold 256 bytes of memory and 8
