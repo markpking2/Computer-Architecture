@@ -48,7 +48,43 @@ class CPU:
         self.reg = [0] * 8
         self.pc = 0
         self.fl = 0
-        self.ie = 0
+
+        self.branchtable = {}
+        # self.branchtable[CALL] = self.handle_call
+        self.branchtable[HLT] = self.handle_hlt
+        # self.branchtable[IRET] = self.handle_iret
+        # self.branchtable[JEQ] = self.handle_jeq
+        # self.branchtable[JGE] = self.handle_jge
+        # self.branchtable[JGT] = self.handle_jgt
+        # self.branchtable[JLE] = self.handle_jle
+        # self.branchtable[JLT] = self.handle_jlt
+        # self.branchtable[JMP] = self.handle_jmp
+        # self.branchtable[JNE] = self.handle_jne
+        # self.branchtable[LD] = self.handle_ld
+        self.branchtable[LDI] = self.handle_ldi
+        # self.branchtable[MUL] = self.handle_mul
+        # self.branchtable[NOP] = self.handle_nop
+        # self.branchtable[POP] = self.handle_pop
+        # self.branchtable[PRA] = self.handle_pra
+        self.branchtable[PRN] = self.handle_prn
+        # self.branchtable[PUSH] = self.handle_push
+        # self.branchtable[RET] = self.handle_ret
+        # self.branchtable[ST] = self.handle_st
+
+        self.branchtable[ADD] = self.alu_handle_add
+        # self.branchtable[AND] = self.alu_handle_and
+        # self.branchtable[CMP] = self.alu_handle_cmp
+        self.branchtable[DEC] = self.alu_handle_dec
+        # self.branchtable[DIV] = self.alu_handle_div
+        self.branchtable[INC] = self.alu_handle_inc
+        # self.branchtable[MOD] = self.alu_handle_mod
+        self.branchtable[MUL] = self.alu_handle_mul
+        # self.branchtable[NOT] = self.alu_handle_not
+        # self.branchtable[OR] = self.alu_handle_or
+        # self.branchtable[SHL] = self.alu_handle_shl
+        # self.branchtable[SHR] = self.alu_handle_shr
+        self.branchtable[SUB] = self.alu_handle_sub
+        # self.branchtable[XOR] = self.alu_handle_xor
 
     def ram_read(self, mar):
         return self.ram[mar]
@@ -56,35 +92,29 @@ class CPU:
     def ram_write(self, mdr, mar):
         self.ram[mar] = mdr
 
-    def load(self):
-        """Load a program into memory."""
+    def load(self, path):
+        try:
+            address = 0
+            with open(path) as file:
+                for line in file:
+                    line = line.split('#')[0]
+                    line = line.strip()
+                    if line == '':
+                        continue
+                    instruction = int(line, 2)
+                    self.ram[address] = instruction
+                    address += 1
+        except FileNotFoundError:
+            print('File not found.')
+            sys.exit(2)
 
-        address = 0
+    # def alu(self, op, reg_a, reg_b):
+    #     """ALU operations."""
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010,  # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111,  # PRN R0
-            0b00000000,
-            0b00000001,  # HLT
-        ]
-
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
-
-    def alu(self, op, reg_a, reg_b):
-        """ALU operations."""
-
-        if op == ADD:
-            self.reg[reg_a] += self.reg[reg_b]
-            self.pc += 3
-        else:
-            raise Exception("Unsupported ALU operation")
+    #     if op == ADD:
+    #         self.reg[reg_a] += self.reg[reg_b]
+    #     else:
+    #         raise Exception("Unsupported ALU operation")
 
     def trace(self):
         """
@@ -106,25 +136,37 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        operand_a = self.ram_read(self.pc + 1)
-        operand_b = self.ram_read(self.pc + 2)
-
         while True:
-            instruction = self.ram[self.pc]
+            ir = self.ram[self.pc]
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+            operand_count = ir >> 6
+            instruction_length = operand_count + 1
 
-            if instruction == HLT:
-                sys.exit(0)
-            elif instruction == JMP:
-                self.pc = operand_a
-                self.pc += 2
-            elif instruction == LDI:
-                self.reg[operand_a] = operand_b
-                self.pc += 3
-            elif instruction == NOP:
-                self.pc += 1
-            elif instruction == PRN:
-                print(self.reg[operand_a])
-                self.pc += 1
-            else:
-                print(f'Unknown instruction at index {self.pc}')
-                sys.exit(1)
+            self.branchtable[ir](operand_a, operand_b)
+
+            self.pc += instruction_length
+
+    def handle_hlt(self, a, b):
+        sys.exit(0)
+
+    def handle_ldi(self, a, b):
+        self.reg[a] = b
+
+    def handle_prn(self, a, b):
+        print(self.reg[a])
+
+    def alu_handle_add(self, a, b):
+        self.reg[a] += self.reg[b]
+
+    def alu_handle_dec(self, a, b):
+        self.reg[a] -= 1
+
+    def alu_handle_inc(self, a, b):
+        self.reg[a] += 1
+
+    def alu_handle_mul(self, a, b):
+        self.reg[a] *= self.reg[b]
+
+    def alu_handle_sub(self, a, b):
+        self.reg[a] -= self.reg[b]
