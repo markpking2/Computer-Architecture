@@ -4,39 +4,39 @@ import sys
 
 
 ADD = 0b10100000
-AND = 0b10101000
-CALL = 0b1010000
-CMP = 0b10100111
+# AND = 0b10101000
+# CALL = 0b1010000
+# CMP = 0b10100111
 DEC = 0b01100110
-DIV = 0b10100011
+# DIV = 0b10100011
 HLT = 0b00000001
 INC = 0b01100101
-INT = 0b01010010
-IRET = 0b00010011
-JEQ = 0b01010101
-JGE = 0b01011010
-JGT = 0b01010111
-JLE = 0b01011001
-JLT = 0b01011000
-JMP = 0b01010100
-JNE = 0b01010110
-LD = 0b10000011
+# INT = 0b01010010
+# IRET = 0b00010011
+# JEQ = 0b01010101
+# JGE = 0b01011010
+# JGT = 0b01010111
+# JLE = 0b01011001
+# JLT = 0b01011000
+# JMP = 0b01010100
+# JNE = 0b01010110
+# LD = 0b10000011
 LDI = 0b10000010
-MOD = 0b10100100
+# MOD = 0b10100100
 MUL = 0b10100010
-NOP = 0b00000000
-NOT = 0b01101001
-OR = 0b10101010
+# NOP = 0b00000000
+# NOT = 0b01101001
+# OR = 0b10101010
 POP = 0b01000110
-PRA = 0b01001000
+# PRA = 0b01001000
 PRN = 0b01000111
 PUSH = 0b01000101
-RET = 0b00010001
-SHL = 0b10101100
-SHR = 0b10101101
-ST = 0b10000100
+# RET = 0b00010001
+# SHL = 0b10101100
+# SHR = 0b10101101
+# ST = 0b10000100
 SUB = 0b10100001
-XOR = 0b10101011
+# XOR = 0b10101011
 
 
 class CPU:
@@ -47,11 +47,15 @@ class CPU:
         self.ram = [0] * 256
         self.reg = [0] * 8
         self.pc = 0
-        self.fl = 0
+        self.sp = 7
+        self.reg[self.sp] = 0xF4
+        # self.fl = 0
+        # self.ie = 0
 
         self.branchtable = {}
         # self.branchtable[CALL] = self.handle_call
         self.branchtable[HLT] = self.handle_hlt
+        # self.branchtable[INT] = self.handle_int
         # self.branchtable[IRET] = self.handle_iret
         # self.branchtable[JEQ] = self.handle_jeq
         # self.branchtable[JGE] = self.handle_jge
@@ -64,10 +68,10 @@ class CPU:
         self.branchtable[LDI] = self.handle_ldi
         # self.branchtable[MUL] = self.handle_mul
         # self.branchtable[NOP] = self.handle_nop
-        # self.branchtable[POP] = self.handle_pop
+        self.branchtable[POP] = self.handle_pop
         # self.branchtable[PRA] = self.handle_pra
         self.branchtable[PRN] = self.handle_prn
-        # self.branchtable[PUSH] = self.handle_push
+        self.branchtable[PUSH] = self.handle_push
         # self.branchtable[RET] = self.handle_ret
         # self.branchtable[ST] = self.handle_st
 
@@ -92,11 +96,12 @@ class CPU:
     def ram_write(self, mdr, mar):
         self.ram[mar] = mdr
 
-    def load(self, path):
+    def load(self, program):
+        """Load a program into memory."""
         try:
             address = 0
-            with open(path) as file:
-                for line in file:
+            with open(program) as f:
+                for line in f:
                     line = line.split('#')[0]
                     line = line.strip()
                     if line == '':
@@ -105,7 +110,7 @@ class CPU:
                     self.ram[address] = instruction
                     address += 1
         except FileNotFoundError:
-            print('File not found.')
+            print('ERROR: Must have valid file name')
             sys.exit(2)
 
     # def alu(self, op, reg_a, reg_b):
@@ -124,6 +129,7 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
+            # self.fl,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
             self.ram_read(self.pc + 2)
@@ -153,8 +159,18 @@ class CPU:
     def handle_ldi(self, a, b):
         self.reg[a] = b
 
+    def handle_pop(self, reg_num, b):
+        val = self.ram[self.reg[self.sp]]
+        self.reg[reg_num] = val
+        self.reg[self.sp] += 1
+
     def handle_prn(self, a, b):
         print(self.reg[a])
+
+    def handle_push(self, reg_num, b):
+        self.reg[self.sp] -= 1
+        reg_val = self.reg[reg_num]
+        self.ram[self.reg[self.sp]] = reg_val
 
     def alu_handle_add(self, a, b):
         self.reg[a] += self.reg[b]
